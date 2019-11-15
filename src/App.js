@@ -1,28 +1,86 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { Route, Switch, withRouter, Redirect } from 'react-router-dom';
+import { connect } from 'react-redux';
+import asyncComponent from './hoc/asyncComponent/asyncComponent';
+
+import Layout from './hoc/Layout/Layout';
+import BurgerBuilder from './containers/BurgerBuilder/BurgerBuilder';
+import Logout from './containers/Auth/Logout/Logout';
+import * as actions from './store/actions/';
+
+const asyncChechout = asyncComponent(() => {
+  return import('./containers/Checkout/Checkout');
+});
+
+const asyncOrders = asyncComponent(() => {
+  return import('./containers/Orders/Orders');
+});
+
+const asyncAuth = asyncComponent(() => {
+  return import('./containers/Auth/Auth');
+});
 
 class App extends Component {
+  // state = {
+  //   show: true,
+  // }
+
+  // componentDidMount () {
+  //   setTimeout( () => {
+  //     console.log('Is going to remove it now');
+  //     this.setState({show: false});
+  //   }, 5000);
+  // }
+
+  componentDidMount() {
+    this.props.onAuthCheckState();
+  }
+
   render() {
+    let routes = (
+      <Switch>
+        <Route path="/auth" component={asyncAuth} />
+        <Route path="/" exact component={BurgerBuilder} />
+        <Redirect to="/" />
+      </Switch>
+    );
+
+    if(this.props.isAuthenticated) {
+      routes = (
+        <Switch>
+          <Route path="/checkout" component={asyncChechout} />
+          <Route path="/orders" component={asyncOrders} />
+          <Route path="/auth" component={asyncAuth} />
+          <Route path="/logout" component={Logout} />
+          <Route path="/" exact component={BurgerBuilder} />
+          <Redirect to="/" />
+        </Switch>
+      );
+    }
     return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
+      <div>
+        <Layout>
+         {/* { this.state.show ? <BurgerBuilder /> : null } */}
+         {/* <Switch>
+           <Route path="/checkout" component={Checkout} />
+           <Route path="/orders" component={Orders} />
+           <Route path="/auth" component={Auth} />
+           <Route path="/logout" component={Logout} />
+           <Route path="/" exact component={BurgerBuilder} />
+         </Switch> */}
+         { routes }
+        </Layout>
       </div>
     );
   }
 }
 
-export default App;
+const mapStateToProps = state => ({
+  isAuthenticated: state.auth.token !== null,
+})
+
+const mapDispatchToProps = dispatch => ({
+  onAuthCheckState: () => dispatch(actions.authCheckState()),
+});
+
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(App));
